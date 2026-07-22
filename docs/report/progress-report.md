@@ -43,3 +43,15 @@ Actions:
 - Verified the 6 tables were auto-created on first boot
 
 Screenshot: docs/screenshots/02-db-schema.png
+
+## Step 4: Next.js web app
+
+Actions:
+- Scaffolded the web app with create-next-app in web/ (Next.js 16, TypeScript, App Router, Tailwind CSS, ESLint)
+- Verified the dev server boots on localhost:3000
+- Replaced the default template with a custom PostureGuard landing page
+- Added a screenshots gallery at docs/screenshots/README.md
+
+Note: create-next-app installed Next.js 16 (newer than the planned 14); same App Router architecture. 3 npm audit warnings left untouched for now, to be handled in a dedicated dependency-security pass later.
+
+Screenshots: docs/screenshots/03-nextjs-running.png, docs/screenshots/04-landing-page.png
