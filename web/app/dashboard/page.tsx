@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { logoutAction } from "@/app/actions/auth";
 import { addDomainAction, verifyDomainAction } from "@/app/actions/domains";
+import { scanDomainAction } from "@/app/actions/scans";
 import pool from "@/lib/db";
 
 export default async function DashboardPage({
@@ -52,6 +53,9 @@ export default async function DashboardPage({
           {sp.error === "domain_exists" && (
             <p className="mt-2 text-sm text-red-400">You already added this domain.</p>
           )}
+          {sp.error === "not_verified" && (
+            <p className="mt-2 text-sm text-red-400">Verify the domain before scanning.</p>
+          )}
           {sp.verified === "1" && (
             <p className="mt-2 text-sm text-green-400">Domain verified successfully.</p>
           )}
@@ -83,7 +87,14 @@ export default async function DashboardPage({
                   )}
                 </div>
 
-                {!d.verified && (
+                {d.verified ? (
+                  <form action={scanDomainAction} className="mt-4">
+                    <input type="hidden" name="domainId" value={d.id} />
+                    <button className="rounded-md bg-neutral-100 text-neutral-900 px-4 py-1.5 text-sm font-medium">
+                      Scan now
+                    </button>
+                  </form>
+                ) : (
                   <div className="mt-4 text-sm text-neutral-400">
                     <p>Add this DNS TXT record, then click Verify:</p>
                     <div className="mt-2 rounded-md bg-neutral-900 border border-neutral-800 p-3 font-mono text-xs break-all">

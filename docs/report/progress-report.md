@@ -83,3 +83,19 @@ Actions:
 Note: full green "Verified" flow requires a domain the user controls; will be exercised in Phase 1 with the blog domain.
 
 Screenshot: docs/screenshots/08-domain-verification.png
+
+## Step 7 and 8: Python worker, scanners, scoring, and report
+
+Actions:
+- Added a scan queue trigger (Scan now) that inserts a queued row into scans
+- Built a live scan report page that auto-refreshes while a scan is queued or running
+- Built the Python worker (worker/worker.py) in an isolated venv, dependencies: psycopg[binary], python-dotenv
+- The worker claims one queued job at a time with FOR UPDATE ... SKIP LOCKED, so multiple workers never collide
+- Three scanners (standard library only, no heavy deps):
+  - TLS: certificate expiry and negotiated TLS version
+  - HTTP headers: presence of HSTS, CSP, X-Content-Type-Options, X-Frame-Options, Referrer-Policy
+  - Ports: connect scan of common ports, flags sensitive ones (Telnet, RDP, MySQL, PostgreSQL, FTP)
+- Scoring: start at 100, subtract per-severity penalties, map to an A-F grade
+- End-to-end test on example.com: score 58/100 (grade D), 10 findings
+
+Screenshots: docs/screenshots/09-scan-report.png, 10-worker-output.png
