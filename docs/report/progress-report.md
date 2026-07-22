@@ -31,3 +31,15 @@ Actions:
 - First commit: a14912c
 
 Screenshot: docs/screenshots/01-first-commit.png
+
+## Step 3: PostgreSQL via Docker Compose
+
+Actions:
+- Wrote docker-compose.yml (Postgres 16, healthcheck, named volume, port 5432)
+- Added .env (gitignored secret) and .env.example (committed template)
+- Wrote db/init/01-schema.sql: organizations, users, sessions, domains, scans, findings
+- The scans table doubles as a job queue (status queued/running/done/error) for SKIP LOCKED polling
+- Started the container: docker compose up -d, container healthy
+- Verified the 6 tables were auto-created on first boot
+
+Screenshot: docs/screenshots/02-db-schema.png
