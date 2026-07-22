@@ -36,3 +36,8 @@ After sign-up or login, the user lands on a protected dashboard. Unauthenticated
 ![Hashed passwords](07-hashed-passwords.png)
 
 Passwords are never stored in plain text. Each is hashed with bcrypt (cost factor 12), shown here by the "$2b$12$" prefix.
+
+## 08. Domain ownership verification
+![Domain verification](08-domain-verification.png)
+
+Before scanning, a user must prove they own the domain. PostureGuard issues a unique token to place in a DNS TXT record (_postureguard.<domain>). Verification performs a live DNS lookup and only marks the domain verified if the token is found.

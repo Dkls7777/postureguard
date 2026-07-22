@@ -69,3 +69,17 @@ Actions:
 Security note: the local DB password is still the placeholder value; acceptable for a local-only dev DB, to be rotated before the Azure deployment (Phase 1).
 
 Screenshots: docs/screenshots/05-signup-page.png, 06-dashboard.png, 07-hashed-passwords.png
+
+## Step 6: Domain submission and DNS TXT ownership verification
+
+Actions:
+- Added a domain submission form on the dashboard (with domain normalization and validation)
+- Each domain gets a unique verification token (crypto random)
+- Ownership is proven via a DNS TXT record at _postureguard.<domain> = postureguard-site-verification=<token>
+- The Verify action performs a live DNS TXT lookup (Node dns/promises) and marks the domain verified only on a match
+- Domains list shows Verified / Pending status per domain
+- Tested add + failed verification (expected, since the TXT is not set on a domain we do not own)
+
+Note: full green "Verified" flow requires a domain the user controls; will be exercised in Phase 1 with the blog domain.
+
+Screenshot: docs/screenshots/08-domain-verification.png
