@@ -55,3 +55,17 @@ Actions:
 Note: create-next-app installed Next.js 16 (newer than the planned 14); same App Router architecture. 3 npm audit warnings left untouched for now, to be handled in a dedicated dependency-security pass later.
 
 Screenshots: docs/screenshots/03-nextjs-running.png, docs/screenshots/04-landing-page.png
+
+## Step 5: Authentication
+
+Actions:
+- Connected Next.js to PostgreSQL via a pg connection pool (lib/db.ts) and a /api/health check
+- Built email/password auth with bcryptjs (cost 12), server-side sessions, and an httpOnly session cookie (lib/auth.ts)
+- Server Actions for signup, login, logout (app/actions/auth.ts)
+- Signup creates the user AND their organization in a single transaction (minimal multi-tenant: one user = one org)
+- Pages: /signup, /login, and a protected /dashboard that redirects unauthenticated visitors to /login
+- Verified in DB that passwords are stored as bcrypt hashes ($2b$12$...)
+
+Security note: the local DB password is still the placeholder value; acceptable for a local-only dev DB, to be rotated before the Azure deployment (Phase 1).
+
+Screenshots: docs/screenshots/05-signup-page.png, 06-dashboard.png, 07-hashed-passwords.png

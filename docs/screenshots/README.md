@@ -21,3 +21,18 @@ The Next.js 16 web app boots on localhost:3000 with the default template, confir
 ![Landing page](04-landing-page.png)
 
 Replaced the default template with a custom PostureGuard landing page, styled with Tailwind CSS.
+
+## 05. Sign-up page
+![Sign-up page](05-signup-page.png)
+
+The account creation form (email + password), styled with Tailwind.
+
+## 06. Dashboard (protected)
+![Dashboard](06-dashboard.png)
+
+After sign-up or login, the user lands on a protected dashboard. Unauthenticated visitors are redirected to the login page.
+
+## 07. Hashed passwords in the database
+![Hashed passwords](07-hashed-passwords.png)
+
+Passwords are never stored in plain text. Each is hashed with bcrypt (cost factor 12), shown here by the "$2b$12$" prefix.
