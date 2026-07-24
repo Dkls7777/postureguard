@@ -1,0 +1,15 @@
+[Unit]
+Description=PostureGuard scan worker
+After=network.target
+
+[Service]
+Type=simple
+User=dossa
+WorkingDirectory=/home/dossa/projects/postureguard/worker
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/home/dossa/projects/postureguard/worker/.venv/bin/python -u /home/dossa/projects/postureguard/worker/worker.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

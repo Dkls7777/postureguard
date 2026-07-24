@@ -99,3 +99,17 @@ Actions:
 - End-to-end test on example.com: score 58/100 (grade D), 10 findings
 
 Screenshots: docs/screenshots/09-scan-report.png, 10-worker-output.png
+
+## Step 9: Linux production basics
+
+Actions:
+- Turned the Python worker into a systemd service (auto-start on boot, Restart=always, journald logging)
+- Fixed Python stdout buffering under systemd with PYTHONUNBUFFERED and python -u so logs stream to journald
+- Wrote a bash backup script (pg_dump + gzip) with rotation (keep last 7)
+- Scheduled daily backups at 03:00 with a systemd timer (Persistent=true)
+- Verified the worker service and backup timer survive a full machine restart (the timer ran automatically overnight)
+- Versioned the unit files in deploy/systemd/ for reproducibility
+
+Deferred: SSH hardening to Phase 1 on the Azure VM, where it is meaningful (WSL does not expose SSH to the internet).
+
+Screenshots: docs/screenshots/11-systemd-worker.png, 12-backup-timer.png

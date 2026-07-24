@@ -51,3 +51,13 @@ A completed scan for example.com: overall score 58/100 (grade D) with detailed f
 ![Worker output](10-worker-output.png)
 
 The Python worker polls the scans queue (SKIP LOCKED), runs the three scanners, writes findings, computes the score, and marks the scan done.
+
+## 11. systemd worker service
+![systemd worker](11-systemd-worker.png)
+
+The Python worker runs as a systemd service: it starts automatically on boot, restarts on crash, and its logs are captured by journald.
+
+## 12. Automated database backups
+![Backup timer](12-backup-timer.png)
+
+A systemd timer runs a bash backup script daily at 03:00. Each run dumps and gzips the database, then rotates old backups (keeping the last 7). The timer fired on its own after a full machine restart.

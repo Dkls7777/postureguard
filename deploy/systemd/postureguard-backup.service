@@ -1,0 +1,8 @@
+[Unit]
+Description=PostureGuard database backup
+After=network.target
+
+[Service]
+Type=oneshot
+User=dossa
+ExecStart=/home/dossa/projects/postureguard/scripts/backup-db.sh
