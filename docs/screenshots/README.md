@@ -61,3 +61,8 @@ The Python worker runs as a systemd service: it starts automatically on boot, re
 ![Backup timer](12-backup-timer.png)
 
 A systemd timer runs a bash backup script daily at 03:00. Each run dumps and gzips the database, then rotates old backups (keeping the last 7). The timer fired on its own after a full machine restart.
+
+## 13. Scoring unit tests
+![Scoring tests](13-tests-passing.png)
+
+The scoring logic is isolated in a dependency-free module and covered by pytest unit tests: empty scan, single high, single critical, a realistic mixed case, and the zero floor.

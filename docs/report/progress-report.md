@@ -113,3 +113,13 @@ Actions:
 Deferred: SSH hardening to Phase 1 on the Azure VM, where it is meaningful (WSL does not expose SSH to the internet).
 
 Screenshots: docs/screenshots/11-systemd-worker.png, 12-backup-timer.png
+
+## Phase 0 finish: scoring unit tests
+
+Actions:
+- Extracted the scoring logic into worker/scoring.py (no DB or network dependency, easy to test)
+- worker.py now imports score_findings from that module
+- Added worker/test_scoring.py with 5 pytest cases: empty scan (100/A), single high (80/B), single critical (60/C), realistic mix (58/D), and the zero floor (0/F)
+- All 5 tests pass; verified the worker service still scans correctly after the refactor
+
+Screenshot: docs/screenshots/13-tests-passing.png
