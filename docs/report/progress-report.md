@@ -123,3 +123,9 @@ Actions:
 - All 5 tests pass; verified the worker service still scans correctly after the refactor
 
 Screenshot: docs/screenshots/13-tests-passing.png
+
+## Phase 0 finish: first blog article (draft)
+
+Wrote the first technical article, "Building a security posture scanner with Next.js and Python" (docs/blog/), in English and first person. It covers the architecture, the PostgreSQL SKIP LOCKED job queue, the scanners, DNS ownership verification, auth, and running the worker under systemd. It will be published once the Hugo blog is live in Phase 1.
+
+Phase 0 is complete: full local MVP, worker as a systemd service with automated backups, README with an architecture diagram, MIT license, scoring unit tests, and this article.
