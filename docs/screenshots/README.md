@@ -71,3 +71,11 @@ The scoring logic is isolated in a dependency-free module and covered by pytest 
 ![Real domain verified](14-real-domain-verified.png)
 
 End-to-end ownership verification on a real domain I own (samdossou.com): the app issued a unique token, I added the corresponding DNS TXT record at the registrar (Cloudflare), and the live DNS lookup confirmed it. The badge turned green.
+
+## 15. Azure resource group created from the CLI
+![Resource group via CLI](15-azure-resource-group-cli.png)
+Phase 1 starts in the terminal, not the portal: `az group create` provisions `rg-postureguard-prod-frc` in France Central with the five mandatory tags applied at creation time rather than retrofitted afterwards. Scripting the infrastructure from day one is what makes it cheap to tear everything down between sessions and rebuild it in minutes — and it is the first draft of the Terraform code coming in Phase 4. The output is filtered with `--query` so that no subscription identifier appears in the screenshot.
+
+## 16. Resource group in the Azure portal
+![Resource group in the portal](16-azure-resource-group-portal.png)
+The same resource group seen from the portal. The tags are not cosmetic: Azure Cost Management can break the bill down by `project` and by `phase`, which matters when working against a credit that expires after 30 days. Everything in Phase 1 lives in this single resource group, so a single `az group delete` removes all of it.

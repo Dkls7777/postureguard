@@ -5,7 +5,7 @@
 set -euo pipefail
 
 # --- Context ---
-export SUBSCRIPTION_ID="23664c13-06e5-4a70-83a1-e880b3d153c9"
+export SUBSCRIPTION_ID="${SUBSCRIPTION_ID:-$(az account show --query id --output tsv)}"
 export LOCATION="francecentral"
 export LOC_ABBR="frc"
 export PROJECT="postureguard"

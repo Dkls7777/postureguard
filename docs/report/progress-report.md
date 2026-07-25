@@ -137,3 +137,36 @@ the app generated a token, the TXT record (_postureguard.samdossou.com) was adde
 the registrar, and PostureGuard's live DNS check confirmed it (green "Verified").
 This validates the DNS ownership feature on a real domain, beyond the local example.com test.
 The domain will host the deployed app and blog from Phase 1.
+
+## Phase 1 — Step 1: Azure CLI and subscription guardrails
+
+Installed the Azure CLI inside WSL and authenticated with `az login --use-device-code`,
+which avoids the browser-handoff problems WSL has with the default login flow. The
+Debian package published for `jammy` installs cleanly on Ubuntu 26.04 — Microsoft does
+not publish a package per Ubuntu codename.
+
+Registered the resource providers needed by the phase before creating anything:
+`Microsoft.App`, `Microsoft.DBforPostgreSQL`, `Microsoft.ContainerRegistry`,
+`Microsoft.KeyVault` and `Microsoft.OperationalInsights`. A fresh subscription does not
+have every provider enabled, and an unregistered provider surfaces as an obscure failure
+halfway through a deployment rather than as a clear error up front. Registration is
+asynchronous and free.
+
+## Phase 1 — Step 2: Naming convention and resource group
+
+Wrote the naming and tagging convention first (`docs/azure-naming-convention.md`) and
+only then created infrastructure. The convention will be reused verbatim by the
+Terraform code in Phase 4, so improvising names now would mean paying for a refactor
+later.
+
+All resource names live in `deploy/azure/00-variables.sh`, sourced by every deployment
+script; no name is hard-coded in a command. The subscription ID is resolved at runtime
+from the active CLI session instead of being committed, so the repository contains no
+environment identifiers.
+
+Created `rg-postureguard-prod-frc` in France Central with five mandatory tags
+(`project`, `env`, `phase`, `owner`, `managedBy`). France Central gives the lowest
+latency from Paris, keeps data in France, and has available quota on the trial
+subscription. The whole phase deliberately lives in a single resource group: with a
+credit that expires in 30 days, being able to delete everything with one command is a
+cost control, not a shortcut.
