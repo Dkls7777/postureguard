@@ -2,7 +2,6 @@
 # PostureGuard - shared variables for all Azure scripts (Phase 1)
 # Usage: source deploy/azure/00-variables.sh
 
-set -euo pipefail
 
 # --- Context ---
 export SUBSCRIPTION_ID="${SUBSCRIPTION_ID:-$(az account show --query id --output tsv)}"
