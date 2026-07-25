@@ -66,3 +66,8 @@ A systemd timer runs a bash backup script daily at 03:00. Each run dumps and gzi
 ![Scoring tests](13-tests-passing.png)
 
 The scoring logic is isolated in a dependency-free module and covered by pytest unit tests: empty scan, single high, single critical, a realistic mixed case, and the zero floor.
+
+## 14. Real domain ownership verified
+![Real domain verified](14-real-domain-verified.png)
+
+End-to-end ownership verification on a real domain I own (samdossou.com): the app issued a unique token, I added the corresponding DNS TXT record at the registrar (Cloudflare), and the live DNS lookup confirmed it. The badge turned green.

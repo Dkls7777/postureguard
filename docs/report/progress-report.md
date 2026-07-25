@@ -129,3 +129,11 @@ Screenshot: docs/screenshots/13-tests-passing.png
 Wrote the first technical article, "Building a security posture scanner with Next.js and Python" (docs/blog/), in English and first person. It covers the architecture, the PostgreSQL SKIP LOCKED job queue, the scanners, DNS ownership verification, auth, and running the worker under systemd. It will be published once the Hugo blog is live in Phase 1.
 
 Phase 0 is complete: full local MVP, worker as a systemd service with automated backups, README with an architecture diagram, MIT license, scoring unit tests, and this article.
+
+## Phase 0 wrap-up: real domain verification
+
+Registered samdossou.com (Cloudflare registrar) and verified ownership end to end:
+the app generated a token, the TXT record (_postureguard.samdossou.com) was added at
+the registrar, and PostureGuard's live DNS check confirmed it (green "Verified").
+This validates the DNS ownership feature on a real domain, beyond the local example.com test.
+The domain will host the deployed app and blog from Phase 1.
