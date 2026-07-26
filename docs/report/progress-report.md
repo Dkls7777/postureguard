@@ -250,3 +250,48 @@ WSL, stopped working. Since 1 July 2026, newly created Entra tenants block devic
 flow by default under security defaults, because the flow is heavily abused in phishing.
 Interactive browser login is now the only path, which under WSL required a small helper
 script exporting `BROWSER` so the CLI can hand the URL to the Windows browser.
+
+## Phase 1 — Step 5: Containerising the web app and the worker
+
+Both components now build into images that run anywhere, take their configuration from the
+environment, and contain no secrets.
+
+Three principles were applied deliberately. The web image uses a three-stage build:
+dependencies, build, runtime. Only the Next.js standalone output ships, which required
+setting `output: "standalone"` in `next.config.ts`. The result is 270 MB rather than roughly
+1.2 GB, and 24 runtime packages rather than the 386 installed at build time. Both images run
+as unprivileged users, verified with `whoami` returning `nextjs` and `worker` — a container
+escape from root is an escape to root on the host. And `.dockerignore` excludes `.env*`
+files: Docker layers are immutable, so a secret copied in one layer and deleted in the next
+remains readable in the image history, which is one of the most common secret leaks in
+practice.
+
+`pytest` moved out of the worker's `requirements.txt` into `requirements-dev.txt`; test
+tooling has no place in a production image. The worker needed no code changes:
+`load_dotenv()` tolerates a missing file, and `os.environ["DATABASE_URL"]` reads whatever
+the platform injects.
+
+The dependency remediation took most of the step and is written up in full in the blog
+notes. Summary: `npm ci` reported 12 high-severity advisories; inspecting the image showed
+nine of them never leave the build stage. The one genuinely shipped package, `sharp 0.34.5`,
+carried four libvips CVEs. `npm audit fix --force` proposed `next@9.3.3`, a six-year
+downgrade, and was rejected. Installing `sharp@latest` only relocated the vulnerable copy
+into `node_modules/next/node_modules/sharp`, where Node's resolution order would still have
+preferred it. The correct fix was npm `overrides` with the `"$sharp"` syntax. Verified in
+the artefact: the nested copy is gone, only 0.35.3 remains — and deduplicating the native
+binaries took the image from 305 MB to 270 MB in the process.
+
+Both images were then tested against the local database. The first attempt pointed at
+`host.docker.internal` and timed out, because the database is itself a container rather than
+a host service; attaching the test containers to the same Docker network and addressing
+PostgreSQL by service name worked immediately. That is the model Container Apps uses too,
+and it demonstrates the point of the exercise: the same image runs locally and on Azure,
+with only the environment variable changing.
+
+The reflex this step taught: scan the artefact, not the lockfile. `npm audit` describes the
+development tree, while an attacker interacts with the deployed image.
+
+Operational note: WSL crashed mid-build with I/O errors across `/usr/bin`, taking Docker's
+layer cache with it and leaving a dangling snapshot reference. `docker builder prune -af`
+plus a `--no-cache` rebuild recovered it. An idle `kind` cluster from an unrelated project
+was auto-restarting and consuming memory; stopping it removed the pressure.

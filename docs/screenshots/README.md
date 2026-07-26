@@ -83,3 +83,15 @@ The same resource group seen from the portal. The tags are not cosmetic: Azure C
 ## 21. Database password generated straight into Key Vault
 ![Secret stored in Key Vault](21-keyvault-secret-stored.png)
 The PostgreSQL admin password is generated with `openssl`, written directly to Azure Key Vault, and unset from the shell — it is never displayed, never written to a file, and never enters shell history. Listing secrets returns metadata only, never values, which is why this command is safe to screenshot. The vault uses RBAC authorisation rather than legacy access policies, and being subscription Owner is deliberately not enough to read it: Azure separates the management plane from the data plane, so a dedicated `Key Vault Secrets Officer` assignment is required.
+
+## 22. Remediating a pinned transitive vulnerability
+![Dependency remediation](22-container-dependency-remediation.png)
+`npm ci` reported 12 high-severity advisories. Inspecting the image showed that nine of them — the eslint chain and postcss — never leave the build stage, and that `sharp 0.34.5` was the only genuinely shipped package, carrying four libvips CVEs. `npm audit fix --force` proposed downgrading Next.js to a 2020 release, so it was rejected. Installing `sharp@latest` merely relocated the vulnerable copy where Node would still resolve to it; the real fix was npm `overrides` with the `"$sharp"` syntax. This screenshot verifies the outcome in the artefact rather than in the audit report.
+
+## 23. Debugging container-to-container networking
+![Container networking fix](23-container-networking-fix.png)
+The first test pointed the connection string at `host.docker.internal` and timed out: the database is not a host service, it is another container. Attaching both test containers to the same Docker network and addressing PostgreSQL by its service name worked immediately — the web image returns `{"ok":true}` and the worker starts polling the queue. This is the same model Container Apps uses, where services resolve each other by name; the image never changes, only the injected environment variable does.
+
+## 24. Hardened, minimal images
+![Containers non-root and image sizes](24-container-nonroot-users.png)
+`whoami` returns `nextjs` and `worker` rather than `root` in each image: a container escape from root is an escape to root on the host. The sizes show what the three-stage build buys — 270 MB for the web app instead of roughly 1.2 GB, carrying 24 runtime packages instead of the 386 installed at build time.

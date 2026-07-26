@@ -98,3 +98,68 @@ config is not the same as purging a secret. And my first health check passed aga
 dev server started before the rotation: PostgreSQL does not drop existing sessions when a
 password changes, so a stale process kept serving requests on the old credential and made
 the verification look green. Killing it and restarting was the only honest test.
+
+## Candidate for a separate article: what npm audit actually tells you
+
+Containerising the web app surfaced 12 high-severity npm advisories. Rather than running
+`npm audit fix` and moving on, I worked out which of them actually ship. The numbers below
+are the article.
+
+**The build tree is not the artefact.** `npm ci` installs 386 packages. The runtime image
+contains 24. The multi-stage build leaves 94% of the dependency tree behind in the builder
+stage, and I verified that by inspecting the image rather than trusting the theory:
+
+    eslint  : absent from runtime image
+    postcss : absent from runtime image
+    sharp   : PRESENT in runtime image
+
+Nine of the twelve advisories sat in the `brace-expansion → minimatch → eslint →
+eslint-config-next` chain, a devDependency, plus `postcss`, which runs at build time. None
+reach production. That is not a reason to ignore them — a compromised build tool is a
+supply-chain problem — but it changes the priority entirely.
+
+**The automated fix was worse than the vulnerability.** `npm audit fix --force` proposed
+installing `next@9.3.3`, a release from 2020, because no patched version existed in the
+advisory's range. npm reports the newest unaffected version, which on a fast-moving
+framework can mean a six-year downgrade. Accepting it would have destroyed the app to
+silence a warning.
+
+**Fixing a pinned transitive dependency took three attempts.** `sharp 0.34.5` was the only
+package genuinely present at runtime, used by Next.js for image optimisation, carrying four
+libvips CVEs.
+
+1. `npm install sharp@latest` installed 0.35.3 at the top level — and relocated the
+   vulnerable copy to `node_modules/next/node_modules/sharp`. Node resolves to the nearest
+   `node_modules`, so Next.js would still have loaded 0.34.5. The audit report changed; the
+   runtime behaviour did not.
+2. `"overrides": { "sharp": "^0.35.0" }` failed with `EOVERRIDE`: npm refuses an override
+   that contradicts a direct dependency.
+3. `"overrides": { "sharp": "$sharp" }` is the documented syntax for exactly this case — it
+   aligns every transitive resolution with the direct dependency. That worked.
+
+Verified in the artefact, not in the report:
+
+    node_modules/sharp                    -> 0.35.3
+    node_modules/next/node_modules/sharp  -> absent
+
+**Where it landed.** 11 advisories remain, every one confined to the build stage, proven by
+inspecting what ships. Zero known vulnerabilities in the deployed image — a sentence that is
+defensible because it was measured.
+
+**The security fix also shrank the image.** Before the override, the image carried two
+copies of `sharp`: the patched one at the top level and the vulnerable one pinned underneath
+Next.js. Deduplicating to a single patched version took the web image from 305 MB to 270 MB.
+Removing a vulnerability removed 35 MB of duplicate native binaries with it. Security and
+image hygiene are usually the same work.
+
+**The reflex worth naming.** Scan the artefact, not the lockfile. `npm audit` describes your
+development tree; an attacker interacts with the image you deployed. Two different
+inventories, and only one of them is in production.
+
+## A small networking lesson while testing the images
+
+My first container test pointed the connection string at `host.docker.internal` and timed
+out. The database is not on the host — it is another container. Attaching the test
+containers to the same Docker network and addressing PostgreSQL by its service name worked
+immediately. Worth keeping because it is the same model Container Apps uses: services
+resolve each other by name, the image never changes, only the environment variable does.
