@@ -355,3 +355,48 @@ of the secret instead of an option someone can forget to pass.
 Cost note: this is the expensive resource of the phase at roughly EUR 13 per month running.
 `az postgres flexible-server stop` reduces that to storage only between sessions; Azure
 restarts a stopped server automatically after seven days.
+
+## Phase 1 — Step 8: Deploying to Azure Container Apps
+
+PostureGuard is live. The web app answers on a public HTTPS endpoint from France Central,
+having pulled its image from the registry with a passwordless identity, read its connection
+string from Key Vault, and reached the managed database over TLS.
+
+A Log Analytics workspace with thirty-day retention backs the Container Apps environment;
+ingestion is free up to 5 GB per month, which is ample for two containers. It will also be
+the data source for Sentinel in Phase 3.
+
+The security model is the payoff of everything since step 3. A user-assigned managed identity
+carries no password — Azure issues tokens on demand — and holds exactly two roles: `AcrPull`
+on the registry and `Key Vault Secrets User` on the vault. Not `AcrPush`, so it cannot publish
+images. Not `Secrets Officer`, so it cannot create or modify secrets. `DATABASE_URL` is a
+`secretRef` pointing at a Key Vault reference resolved at startup, so the connection string
+never appears in the application definition, and rotating it in the vault propagates with a
+restart.
+
+The networking assumption I made at the start of the phase turned out to be wrong, and the
+correction is the most interesting part of this step. I allowed the Container Apps
+environment's `staticIp` through the PostgreSQL firewall; that address is the *inbound* IP.
+Outbound traffic on a consumption environment leaves from a shared pool — `outboundIpAddresses`
+returned roughly 180 addresses, and that set changes over time. PostgreSQL Flexible Server
+accepts 256 firewall rules, so IP allow-listing is not merely tedious here, it is unworkable.
+
+Three options existed. Private VNet integration is the correct posture, but private access
+cannot be enabled after creation on Flexible Server, so it would mean deleting and recreating
+the server, rebuilding the environment inside a delegated subnet, and reloading the schema. A
+NAT Gateway would give one stable egress IP and a single firewall rule, at roughly EUR 30 per
+month — doubling the phase budget against a EUR 175 credit. I chose the third: the
+`AllowAzureServices` rule, which is the Azure convention of a `0.0.0.0` start and end address
+and means "reachable from Azure resources", not "reachable from the internet".
+
+Being precise about what that costs: the attack surface widens from one address to the Azure
+range, including resources in other tenants. What it does not do is weaken authentication — a
+32-character random password from Key Vault over enforced TLS. The residual risk is bounded
+and documented rather than hidden, and closing it properly is scheduled for Phase 2, which
+gives that work a measurable before and after.
+
+Cost discipline: the web app runs with `--min-replicas 0`, so it bills only when someone
+visits, at the price of a twenty-second cold start. The worker needs a permanent replica while
+working and is scaled to zero between sessions. Two apps left running at 0.5 and 0.25 vCPU
+would consume far beyond the monthly free grant of 180,000 vCPU-seconds and cost around EUR 40
+per month, which would exhaust the credit in five weeks.

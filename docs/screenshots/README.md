@@ -103,3 +103,15 @@ Both images live in `acrpostureguardprod` with two tags each: the short git SHA 
 ## 26. Schema loaded on Azure Database for PostgreSQL
 ![Azure PostgreSQL schema](26-azure-postgres-schema-loaded.png)
 All six tables exist on the managed server, loaded over TLS with `sslmode=require`. The interesting part is the error that is not shown as a failure: `pgcrypto` is not allow-listed on Azure Database for PostgreSQL, and the grep below shows why that did not matter — the extension was only there for `gen_random_uuid()`, which has been part of core PostgreSQL since version 13. Removing the `CREATE EXTENSION` line made the schema portable across any managed PostgreSQL 13+ instead of requiring a server parameter change. A managed-service constraint that simplified the code rather than complicating it.
+
+## 27. A managed identity with exactly two permissions
+![Managed identity least privilege](27-managed-identity-least-privilege.png)
+The applications authenticate with a user-assigned managed identity that has no password at all — Azure issues short-lived tokens on demand. It holds `AcrPull`, not `AcrPush`, so it can fetch images but cannot publish them; and `Key Vault Secrets User`, not `Secrets Officer`, so it can read secrets but cannot create or modify them. No credential exists anywhere in this deployment, which means none has to be rotated or protected.
+
+## 28. Secrets referenced, never copied
+![Container app secret reference](28-container-app-secret-reference.png)
+The container's environment shows only `secretRef: database-url`, and the secret itself is a Key Vault reference resolved at startup by the managed identity. The connection string is never stored in the app configuration. An account able to read the application definition still cannot read the database password — and rotating the secret in Key Vault propagates with a restart, without touching the deployment.
+
+## 29. The worker running on Azure
+![Worker running on Azure](29-worker-running-on-azure.png)
+The Python worker runs as a background container app with no ingress and no exposed port — it only consumes the queue. Exactly one replica: at zero nobody processes scans, and while the `FOR UPDATE ... SKIP LOCKED` pattern from Phase 0 would handle several workers without collision, there is no reason to pay for that yet.
