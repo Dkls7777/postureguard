@@ -163,3 +163,27 @@ The first KQL query against Log Analytics returned `psycopg.errors.ConnectionTim
 ## 34. Finding the anomaly without reading a single line
 ![Log volume anomaly](34-log-analytics-anomaly.png)
 The aggregate query is the one that matters: 178 events from a silent background worker against 42 from the web app actually serving public traffic. The volume asymmetry is the finding — no log reading required. This is detection reasoning rather than log inspection, and the language is the same KQL that Microsoft Sentinel uses in Phase 3.
+
+## 35. Signed in to the deployed instance
+![Signup on Azure](35-signup-on-azure.png)
+Account created on the live instance at `app.samdossou.com`. The authentication written in Phase 0 — bcrypt hashing, server-side sessions, httpOnly cookie — now runs against a managed database over TLS rather than a local container.
+
+## 36. Domain ownership verified from Azure
+![Domain verified](36-domain-verified-on-azure.png)
+The ownership check ran from a container in France Central against a real DNS TXT record at Cloudflare. Verification before scanning is what keeps the tool from becoming an attack instrument: it only scans what the user can prove they control.
+
+## 37. First end-to-end scan report
+![End-to-end scan report](37-end-to-end-scan-report.png)
+The apex `samdossou.com` scored 70/100 with `No address associated with hostname` — and the scanner was right: the apex has no A, AAAA or CNAME record at all. My own tool found a genuine gap in my own DNS on the day of deployment. It also exposed a scoring flaw: a domain that cannot be reached at all should not land in the same grade band as one that is merely imperfect. "Misconfigured" and "unassessable" are different states.
+
+## 38. The worker processing the job on Azure
+![Worker processed the scan](38-worker-processed-scan.png)
+The full chain in one second: the web app inserted a queued scan, the worker picked it up with `FOR UPDATE ... SKIP LOCKED`, ran the three scanners, wrote the findings and computed the grade. The queue-as-database design from Phase 0 works unchanged on Container Apps.
+
+## 39. PostureGuard scanning its own deployment
+![Scanning the deployed app](39-scan-own-app.png)
+`app.samdossou.com` scored 58/100, grade D. Five missing security headers, HSTS as the high finding. The tool graded its own production deployment and was not generous — which is exactly what it should do. Closing this gap is Phase 2 work, and keeping the D here makes that a measurable before and after.
+
+## 40. What the scan got right
+![Scan details](40-scan-own-app-details.png)
+The same report's informational findings: TLS 1.3 negotiated, a valid certificate with 184 days left, ports 80 and 443 open as expected for a web service. The transport layer is sound because Azure manages it; the application layer is where the work remains.

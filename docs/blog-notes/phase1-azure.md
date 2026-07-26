@@ -179,3 +179,10 @@ that does not fit.
 Second lesson from the same step: `--min-replicas 0` does not stop a container app that has no
 ingress. `replica list` showed it still running and still crashing. Deactivating the revision
 is the actual off switch. A cost control you have not verified is not a cost control.
+
+## Product gap noticed while using the deployed app
+
+Signing in to my own deployed instance made the absence of a password reset flow concrete
+rather than theoretical. Recorded in Phase 0 as future work via Entra External ID in
+Phase 2 — worth keeping the observation, because using a thing is what surfaces what it
+lacks. Reading a backlog does not.

@@ -469,3 +469,32 @@ worthless.
 The full provisioning script was validated with `bash -n` rather than executed. Testing it
 honestly requires destroying the environment first, which belongs at the end of the phase
 as the final verification, not in the middle of it.
+
+## Phase 1 — Step 12: End-to-end verification
+
+The deployment was verified by using the application, not by querying Azure. An account was
+created on the live instance, `samdossou.com` was added and its ownership proven through a
+real DNS TXT record, and a scan was queued from the browser. The worker in France Central
+picked the job up, ran the three scanners and wrote the findings in about one second. The
+queue-as-database design from Phase 0, with `FOR UPDATE ... SKIP LOCKED`, works unchanged on
+Container Apps.
+
+The first scan produced two findings I did not expect. Scanning the apex returned `No address
+associated with hostname`: `samdossou.com` has no A, AAAA or CNAME record, so the bare domain
+reaches nothing. The scanner was correct, and it had found a real gap in my own DNS on the day
+of deployment — after I had bound a certificate and verified HTTPS without ever noticing that
+the apex led nowhere. The second is a scoring flaw: a domain that does not resolve at all
+scores 70/100, grade C, because the scanner applies "TLS failed" and "headers unreachable"
+penalties as though it had measured something weak when in fact it measured nothing.
+"Misconfigured" and "unassessable" are different states and should not share a grade band.
+Phase 0 tested against `example.com` and a local database; real use surfaced this in seconds.
+
+Scanning the deployed application itself gave the meaningful result: `app.samdossou.com`
+scores 58/100, grade D. TLS 1.3 with a valid certificate — Azure manages that layer well —
+and five missing security headers, HSTS as the single high finding. The arithmetic matches the
+scoring module exactly: 100 minus 20 for the high, 10 for the medium and 12 for three lows.
+
+The D stays. Fixing the headers is fifteen lines in `next.config.ts` and the deployment
+pipeline is already in place, but the honest Phase 1 result is the measurable starting point
+for the production hardening in Phase 2. A documented before and after is worth more than a
+quietly obtained A.
