@@ -217,3 +217,36 @@ Operational note: the initial password was passed through a shell variable read 
 `--force-change-password-next-sign-in`, making that value disposable. Security defaults
 then forced MFA registration at first sign-in — the policy proving itself on a new
 identity.
+
+## Phase 1 — Step 4: Key Vault and paying down the Phase 0 debt
+
+Phase 0 shipped with a placeholder database password (`CHANGE_ME_strong_password`),
+acceptable on a local database that was never exposed, unacceptable the moment anything
+is deployed. The vault was therefore created before the database, so that the real
+password never exists anywhere except inside it.
+
+`kv-postureguard-prod` uses RBAC authorisation rather than legacy access policies, which
+keeps permissions auditable in the same place as every other role assignment. Soft-delete
+retention is set to the seven-day minimum, and purge protection is deliberately left off:
+in production it should be enabled, since it prevents an attacker from permanently
+destroying secrets, but here it would make the vault name unrecoverable after a
+`az group delete` and break the tear-down-and-rebuild cycle the credit deadline demands.
+That trade-off is documented rather than hidden.
+
+Granting access to the vault contents required a separate role assignment even though the
+account is subscription Owner. Azure separates the management plane — creating and
+configuring the vault — from the data plane — reading and writing secrets. Owner grants
+the first, not the second. This is real protection: a compromised administrative account
+does not automatically read the secrets.
+
+The password itself is generated with `openssl`, piped through a filter that keeps only
+alphanumeric characters, and written straight to the vault before being unset. The filter
+is not cosmetic: PostgreSQL connection strings are URLs, and a password containing `@`,
+`/`, `:` or `?` breaks them. The value is never printed, never stored in a file, and
+never reaches shell history.
+
+Operational note from this step: `az login --use-device-code`, the standard advice for
+WSL, stopped working. Since 1 July 2026, newly created Entra tenants block device code
+flow by default under security defaults, because the flow is heavily abused in phishing.
+Interactive browser login is now the only path, which under WSL required a small helper
+script exporting `BROWSER` so the CLI can hand the URL to the Windows browser.

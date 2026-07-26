@@ -79,3 +79,7 @@ Phase 1 starts in the terminal, not the portal: `az group create` provisions `rg
 ## 16. Resource group in the Azure portal
 ![Resource group in the portal](16-azure-portal-resource-group.png)
 The same resource group seen from the portal. The tags are not cosmetic: Azure Cost Management can break the bill down by `project` and by `phase`, which matters when working against a credit that expires after 30 days. Everything in Phase 1 lives in this single resource group, so a single `az group delete` removes all of it.
+
+## 21. Database password generated straight into Key Vault
+![Secret stored in Key Vault](21-keyvault-secret-stored.png)
+The PostgreSQL admin password is generated with `openssl`, written directly to Azure Key Vault, and unset from the shell — it is never displayed, never written to a file, and never enters shell history. Listing secrets returns metadata only, never values, which is why this command is safe to screenshot. The vault uses RBAC authorisation rather than legacy access policies, and being subscription Owner is deliberately not enough to read it: Azure separates the management plane from the data plane, so a dedicated `Key Vault Secrets Officer` assignment is required.
