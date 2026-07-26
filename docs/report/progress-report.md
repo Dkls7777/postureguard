@@ -170,3 +170,50 @@ latency from Paris, keeps data in France, and has available quota on the trial
 subscription. The whole phase deliberately lives in a single resource group: with a
 credit that expires in 30 days, being able to delete everything with one command is a
 cost control, not a shortcut.
+
+## Phase 1 — Step 3: Identity hardening and least privilege
+
+Before deploying anything, I audited the identity layer of my own tenant. Listing role
+assignments showed a single principal holding `Owner` on the entire subscription and
+`Global Administrator` on the directory, with no separation between authority over
+resources and authority over identities. The account name also carried the `#EXT#`
+marker: the tenant's only administrator was an external identity backed by a personal
+consumer account.
+
+Entra ID security defaults were already enabled, so multifactor authentication was
+enforced tenant-wide and legacy authentication protocols were blocked. Yet checking the
+owning account itself showed two-step verification switched off, with its only
+verification methods routing back to the same mailbox the account was tied to. The
+tenant looked protected while its sole administrator was not. Remediated by registering
+an authenticator app as an independent second factor, enabling two-step verification,
+and storing an offline recovery code.
+
+I then reconsidered the plan. My first instinct was to create a second Global
+Administrator account to decouple administration from the consumer identity. Once the
+original account had strong authentication, that would have added a password-based admin
+account next to a passwordless, MFA-protected one — a weaker door beside a stronger one.
+
+The design I settled on instead:
+
+- the original account keeps `Owner` and `Global Administrator`, is strongly
+  authenticated, and is used only for privileged operations such as granting roles;
+- a dedicated working account, `sam.ops@…`, holds no directory role at all and exactly
+  one RBAC assignment: `Contributor` scoped to `rg-postureguard-prod-frc`.
+
+Two deliberate choices there. The scope is the resource group rather than the
+subscription, so the account cannot see or touch anything else. And the role is
+Contributor rather than Owner, so it can create and delete resources but cannot grant
+permissions — including to itself.
+
+Then I tested the boundary rather than assuming it. Signed in as the working account,
+creating a resource group outside scope returns `AuthorizationFailed`; assigning itself
+`Owner` returns `AuthorizationFailed`; listing resource groups returns exactly one. The
+second denial is the one that matters, because it is what stops a compromised working
+account from escalating. This is also the identity structure the CI/CD pipeline will
+reuse in Phase 6, with federated credentials instead of a password.
+
+Operational note: the initial password was passed through a shell variable read with
+`read -rs`, so it never reached the shell history, and the account was created with
+`--force-change-password-next-sign-in`, making that value disposable. Security defaults
+then forced MFA registration at first sign-in — the policy proving itself on a new
+identity.
