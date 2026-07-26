@@ -155,3 +155,11 @@ The application running on Azure Container Apps, served over HTTPS on its own do
 ## 32. Deploying a new revision, with rollback available
 ![Revision rollout](32-revision-rollout.png)
 Shipping a change is a cycle: commit, rebuild with the new short SHA as the image tag, push, then `az containerapp update`. Container Apps creates a new revision and shifts traffic to it while keeping the previous one active at zero weight, so rolling back is one `ingress traffic set` command away. This is precisely what `latest` makes impossible: without an immutable tag, there is nothing specific to roll back to.
+
+## 33. Querying the logs found a defect I did not know about
+![Log Analytics KQL](33-log-analytics-kql.png)
+The first KQL query against Log Analytics returned `psycopg.errors.ConnectionTimeout` from the worker, repeating after the database had been stopped. `worker.py` opens a single connection at startup and the process exits if it fails, so the platform restarts it and it fails again. Locally, systemd restarted it exactly the same way, which is why the defect stayed invisible through all of Phase 0: the recovery mechanism hid the fault.
+
+## 34. Finding the anomaly without reading a single line
+![Log volume anomaly](34-log-analytics-anomaly.png)
+The aggregate query is the one that matters: 178 events from a silent background worker against 42 from the web app actually serving public traffic. The volume asymmetry is the finding — no log reading required. This is detection reasoning rather than log inspection, and the language is the same KQL that Microsoft Sentinel uses in Phase 3.

@@ -419,3 +419,31 @@ at the edge.
 
 Verified end to end: `HTTP 200` with `ssl_verify_result 0`, meaning the full chain validates
 from a client that trusts no private authority.
+
+## Phase 1 — Step 10: Observability, and what it immediately found
+
+`az containerapp logs show` is convenient for debugging but only reads the recent buffer of a
+live replica; once a container restarts or scales to zero, those lines are gone. Log Analytics
+keeps thirty days independently of container lifecycle, and querying it is the part that
+matters — a workspace nobody knows how to search is useless during an incident.
+
+The first KQL query returned a defect I had not noticed. The worker was logging
+`psycopg.errors.ConnectionTimeout` repeatedly after the database was stopped: `worker.py`
+opens a single connection at startup and the process exits if it fails, so the platform
+restarts it, and it fails again. Locally systemd restarted it the same way, which is exactly
+why the defect had stayed invisible through all of Phase 0.
+
+The aggregate query made the anomaly visible without reading any individual line: 178 events
+from a background worker against 42 from the web app actually serving traffic. A silent
+process talking four times more than a public endpoint is the signal itself. That is detection
+reasoning rather than log reading, and the language is the same KQL that Sentinel uses in
+Phase 3.
+
+Two corrections followed. First, `--min-replicas 0` does not stop an app without ingress —
+`az containerapp replica list` showed the replica still running and still crashing.
+Deactivating the revision is the reliable off switch, and that is what belongs in the stop
+script rather than a scale setting. A cost control you have not verified is not a cost control.
+Second, the resilience gap is now recorded as known debt: the worker needs reconnection with
+exponential backoff so that a maintenance failover or a thirty-second network blip does not
+leave it crash-looping until someone notices. Roughly twenty lines of code, scheduled with the
+production hardening work in Phase 2.

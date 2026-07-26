@@ -163,3 +163,19 @@ out. The database is not on the host — it is another container. Attaching the 
 containers to the same Docker network and addressing PostgreSQL by its service name worked
 immediately. Worth keeping because it is the same model Container Apps uses: services
 resolve each other by name, the image never changes, only the environment variable does.
+
+## Observability paid for itself in one query
+
+I did not set up Log Analytics expecting to find anything. The first KQL query returned a
+crash loop: the worker opens one database connection at startup and dies if it fails, so the
+platform restarts it forever. Locally, systemd had been restarting it identically for all of
+Phase 0 — the defect was never visible because the recovery mechanism hid the fault.
+
+Better still was the aggregate query. 178 events from a silent background worker against 42
+from the web app serving public traffic. No log reading required; the volume asymmetry is the
+finding. That framing belongs in the article: you do not read logs, you look for the shape
+that does not fit.
+
+Second lesson from the same step: `--min-replicas 0` does not stop a container app that has no
+ingress. `replica list` showed it still running and still crashing. Deactivating the revision
+is the actual off switch. A cost control you have not verified is not a cost control.
