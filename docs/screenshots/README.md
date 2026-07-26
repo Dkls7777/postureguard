@@ -140,6 +140,10 @@ The environment holds an Azure-managed certificate for `app.samdossou.com` in st
 ![App live in browser](31-app-live-browser.png)
 The landing page from screenshot 04 — once served from `localhost:3000` — now loads in a real browser at `https://app.samdossou.com`. Same application, running in production on Azure Container Apps behind a managed TLS certificate. From the first local commit to a public, secured URL: the loop is closed.
 
+## 32. Deploying a new revision by image SHA
+![Revision rollout](32-revision-rollout.png)
+Deployments target an immutable image tag, not `latest`: `az containerapp update` pins the container to `postureguard-web:$GIT_SHA`, and listing the revisions shows each one bound to the exact SHA-tagged image that produced it, with its own traffic weight. Because Container Apps keeps revisions side by side, traffic can be shifted deliberately and rolled back to a known-good revision with certainty. The `curl` at the bottom reads the live site and confirms the deployed content — *Phase 1 - live on Azure Container Apps*.
+
 ## 30. Custom domain with a managed TLS certificate
 ![Custom domain HTTPS](30-custom-domain-https.png)
 `app.samdossou.com` resolves to the container app through a CNAME, validated by a TXT record under the `asuid` prefix — Azure's way of proving domain ownership before letting anyone attach a service to a name they may not control. The certificate is issued and renewed by Azure at no cost. The Cloudflare proxy is deliberately left on "DNS only": with it enabled, Cloudflare terminates TLS and presents its own certificate, which breaks both the initial validation and, more dangerously, the silent renewal months later.
@@ -147,3 +151,7 @@ The landing page from screenshot 04 — once served from `localhost:3000` — no
 ## 31. PostureGuard live on its own domain
 ![App live in the browser](31-app-live-browser.png)
 The application running on Azure Container Apps, served over HTTPS on its own domain, from an image pulled with a passwordless identity and a connection string read from Key Vault at startup.
+
+## 32. Deploying a new revision, with rollback available
+![Revision rollout](32-revision-rollout.png)
+Shipping a change is a cycle: commit, rebuild with the new short SHA as the image tag, push, then `az containerapp update`. Container Apps creates a new revision and shifts traffic to it while keeping the previous one active at zero weight, so rolling back is one `ingress traffic set` command away. This is precisely what `latest` makes impossible: without an immutable tag, there is nothing specific to roll back to.
