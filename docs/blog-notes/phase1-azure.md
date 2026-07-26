@@ -82,3 +82,19 @@ account. After hardening the original account, that plan became a net negative: 
 password-based admin next to a passwordless MFA-protected one. Changing the design was
 the right call, and saying so in the article is more useful than pretending the first
 plan was correct.
+
+## Rotating the placeholder password
+
+`POSTGRES_PASSWORD` in a Docker Compose file is only read when the volume is first
+initialised. Editing the file changes nothing on an existing database — the rotation has
+to go through `ALTER USER` inside the running container, then the connection strings in
+`.env` and `web/.env.local`, then a restart of both the container and the systemd worker.
+A classic trap that quietly leaves the old credential valid if you only edit the file.
+
+Two things nearly made me declare victory too early. Grepping for the placeholder turned
+up matches in the Turbopack build cache — harmless, since the string was never a real
+secret, but the lesson generalises: build artefacts retain values, so purging source and
+config is not the same as purging a secret. And my first health check passed against a
+dev server started before the rotation: PostgreSQL does not drop existing sessions when a
+password changes, so a stale process kept serving requests on the old credential and made
+the verification look green. Killing it and restarting was the only honest test.
