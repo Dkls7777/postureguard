@@ -295,3 +295,29 @@ Operational note: WSL crashed mid-build with I/O errors across `/usr/bin`, takin
 layer cache with it and leaving a dangling snapshot reference. `docker builder prune -af`
 plus a `--no-cache` rebuild recovered it. An idle `kind` cluster from an unrelated project
 was auto-restarting and consuming memory; stopping it removed the pressure.
+
+## Phase 1 — Step 6: Publishing the images to Azure Container Registry
+
+`acrpostureguardprod` was created on the Basic tier with `--admin-enabled false`. ACR offers
+a shared admin username and password valid across the whole registry, and it ends up pasted
+into CI configuration and environment variables everywhere. Leaving it disabled means
+authentication runs on Entra identities instead: an Entra token for pushing via
+`az acr login`, and a managed identity for Container Apps to pull. No registry password will
+exist in this project at any point.
+
+The original plan was `az acr build`, which builds server-side and only uploads the build
+context — cheaper on bandwidth and independent of the local machine's stability. It failed
+with `TasksOperationsNotAllowed`: ACR Tasks is blocked on trial subscriptions, since managed
+build agents are a standard target for cryptomining abuse. Filing a support request would
+not change that, so the build stayed local and only the push went to Azure. A useful
+reminder that a free tier is not a smaller paid tier, it is a different set of rules.
+
+Each image carries two tags: the short git SHA of the commit that produced it, and `latest`.
+Deployments will reference the SHA. Running `latest` in production means not knowing what is
+actually deployed, and not being able to roll back with certainty during an incident. Both
+tags share one digest, which is what allows verifying later that what is running matches the
+commit.
+
+Cost note: ACR Basic is the first billable resource in the phase, at roughly EUR 4.60 per
+month. Unlike compute and the database, it will not be destroyed between sessions, because
+it holds the images.

@@ -95,3 +95,7 @@ The first test pointed the connection string at `host.docker.internal` and timed
 ## 24. Hardened, minimal images
 ![Containers non-root and image sizes](24-container-nonroot-users.png)
 `whoami` returns `nextjs` and `worker` rather than `root` in each image: a container escape from root is an escape to root on the host. The sizes show what the three-stage build buys — 270 MB for the web app instead of roughly 1.2 GB, carrying 24 runtime packages instead of the 386 installed at build time.
+
+## 25. Images published to Azure Container Registry
+![Images in ACR](25-acr-images-pushed.png)
+Both images live in `acrpostureguardprod` with two tags each: the short git SHA of the commit that produced them, and `latest`. Deployments will reference the SHA, never `latest` — an immutable tag is what lets you know exactly what is running and roll back with certainty. The registry's admin account is disabled: pushing authenticates with an Entra token via `az acr login`, and pulling will use a managed identity, so no registry password exists anywhere in this project.
