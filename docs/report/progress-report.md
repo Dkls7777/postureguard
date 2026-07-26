@@ -400,3 +400,22 @@ visits, at the price of a twenty-second cold start. The worker needs a permanent
 working and is scaled to zero between sessions. Two apps left running at 0.5 and 0.25 vCPU
 would consume far beyond the monthly free grant of 180,000 vCPU-seconds and cost around EUR 40
 per month, which would exhaust the credit in five weeks.
+
+## Phase 1 — Step 9: Custom domain and managed certificate
+
+`app.samdossou.com` now serves the application over HTTPS with an Azure-managed certificate.
+Two DNS records at Cloudflare: a CNAME from `app` to the container app's default hostname, and
+a TXT record at `asuid.app` carrying the app's `customDomainVerificationId`. The `asuid`
+convention exists so that a platform never attaches a service to a hostname the requester
+cannot prove they control.
+
+The Cloudflare proxy is set to "DNS only" on purpose. With the proxy enabled, Cloudflare
+terminates TLS and presents its own certificate, which prevents Azure from validating domain
+ownership. The subtler risk is the renewal: Azure revalidates the CNAME when the managed
+certificate expires, so a proxy enabled later would break the site with a certificate error
+months after the change that caused it. When the Cloudflare WAF arrives in Phase 2, that
+becomes a real architectural choice between the Azure managed certificate and TLS termination
+at the edge.
+
+Verified end to end: `HTTP 200` with `ssl_verify_result 0`, meaning the full chain validates
+from a client that trusts no private authority.

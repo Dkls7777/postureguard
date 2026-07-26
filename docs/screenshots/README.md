@@ -80,6 +80,22 @@ Phase 1 starts in the terminal, not the portal: `az group create` provisions `rg
 ![Resource group in the portal](16-azure-portal-resource-group.png)
 The same resource group seen from the portal. The tags are not cosmetic: Azure Cost Management can break the bill down by `project` and by `phase`, which matters when working against a credit that expires after 30 days. Everything in Phase 1 lives in this single resource group, so a single `az group delete` removes all of it.
 
+## 17. Entra ID security defaults enabled
+![Entra security defaults](17-entra-security-defaults.png)
+The tenant runs with Entra ID *security defaults* set to *Enabled (recommended)*: MFA is enforced for administrators, legacy authentication protocols are blocked, and privileged actions require re-authentication. It is the free, zero-configuration baseline that closes the most common identity attack paths before any Conditional Access policy is written. The green banner confirms the directory is actively protected.
+
+## 18. Two-step verification on the Microsoft account
+![Microsoft account 2FA](18-microsoft-account-2fa-enabled.png)
+The identity that owns the whole subscription is itself hardened: two-step verification is on, the account is passwordless, sign-in notifications are enabled, and a passkey (via Google Password Manager) is registered and up to date. Securing the cloud resources is pointless if the human account that controls them can be phished — this is the root of the trust chain.
+
+## 19. The ops account is scoped to one resource group
+![RBAC ops account scoped](19-rbac-ops-account-scoped.png)
+Day-to-day operations use a dedicated account rather than the subscription owner. Its only role assignment is `Contributor` on `rg-postureguard-prod-frc` — it can manage everything inside the project's resource group and nothing outside it. The blast radius of a compromised ops credential stops at the boundary of a single resource group.
+
+## 20. Proving least privilege by what it cannot do
+![RBAC least privilege denied](20-rbac-least-privilege-denied.png)
+The negative test that makes the previous one meaningful: from the ops account, creating a resource group outside the allowed scope fails with `AuthorizationFailed`, and — crucially — self-assigning the `Owner` role also fails, because granting roles is a separate `Microsoft.Authorization/roleAssignments/write` permission the account does not hold. It can still list its own resource group. Privilege escalation is closed off, and the subscription identifiers are redacted in the output.
+
 ## 21. Database password generated straight into Key Vault
 ![Secret stored in Key Vault](21-keyvault-secret-stored.png)
 The PostgreSQL admin password is generated with `openssl`, written directly to Azure Key Vault, and unset from the shell — it is never displayed, never written to a file, and never enters shell history. Listing secrets returns metadata only, never values, which is why this command is safe to screenshot. The vault uses RBAC authorisation rather than legacy access policies, and being subscription Owner is deliberately not enough to read it: Azure separates the management plane from the data plane, so a dedicated `Key Vault Secrets Officer` assignment is required.
@@ -115,3 +131,19 @@ The container's environment shows only `secretRef: database-url`, and the secret
 ## 29. The worker running on Azure
 ![Worker running on Azure](29-worker-running-on-azure.png)
 The Python worker runs as a background container app with no ingress and no exposed port — it only consumes the queue. Exactly one replica: at zero nobody processes scans, and while the `FOR UPDATE ... SKIP LOCKED` pattern from Phase 0 would handle several workers without collision, there is no reason to pay for that yet.
+
+## 30. Custom domain served over HTTPS
+![Custom domain HTTPS](30-custom-domain-https.png)
+The environment holds an Azure-managed certificate for `app.samdossou.com` in state *Succeeded* — issuance and renewal are handled by the platform, with no private key to store or rotate. `curl` confirms the result end to end: `HTTP/2 200`, TLS verification passing (`ssl_verify_result: 0`), a full response in around 50 ms, and the Next.js cache reporting a `HIT`. The app is reachable on its own domain, encrypted, with HTTP redirected to HTTPS.
+
+## 31. PostureGuard live in the browser
+![App live in browser](31-app-live-browser.png)
+The landing page from screenshot 04 — once served from `localhost:3000` — now loads in a real browser at `https://app.samdossou.com`. Same application, running in production on Azure Container Apps behind a managed TLS certificate. From the first local commit to a public, secured URL: the loop is closed.
+
+## 30. Custom domain with a managed TLS certificate
+![Custom domain HTTPS](30-custom-domain-https.png)
+`app.samdossou.com` resolves to the container app through a CNAME, validated by a TXT record under the `asuid` prefix — Azure's way of proving domain ownership before letting anyone attach a service to a name they may not control. The certificate is issued and renewed by Azure at no cost. The Cloudflare proxy is deliberately left on "DNS only": with it enabled, Cloudflare terminates TLS and presents its own certificate, which breaks both the initial validation and, more dangerously, the silent renewal months later.
+
+## 31. PostureGuard live on its own domain
+![App live in the browser](31-app-live-browser.png)
+The application running on Azure Container Apps, served over HTTPS on its own domain, from an image pulled with a passwordless identity and a connection string read from Key Vault at startup.
