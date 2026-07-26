@@ -99,3 +99,7 @@ The first test pointed the connection string at `host.docker.internal` and timed
 ## 25. Images published to Azure Container Registry
 ![Images in ACR](25-acr-images-pushed.png)
 Both images live in `acrpostureguardprod` with two tags each: the short git SHA of the commit that produced them, and `latest`. Deployments will reference the SHA, never `latest` — an immutable tag is what lets you know exactly what is running and roll back with certainty. The registry's admin account is disabled: pushing authenticates with an Entra token via `az acr login`, and pulling will use a managed identity, so no registry password exists anywhere in this project.
+
+## 26. Schema loaded on Azure Database for PostgreSQL
+![Azure PostgreSQL schema](26-azure-postgres-schema-loaded.png)
+All six tables exist on the managed server, loaded over TLS with `sslmode=require`. The interesting part is the error that is not shown as a failure: `pgcrypto` is not allow-listed on Azure Database for PostgreSQL, and the grep below shows why that did not matter — the extension was only there for `gen_random_uuid()`, which has been part of core PostgreSQL since version 13. Removing the `CREATE EXTENSION` line made the schema portable across any managed PostgreSQL 13+ instead of requiring a server parameter change. A managed-service constraint that simplified the code rather than complicating it.

@@ -1,6 +1,8 @@
 -- PostureGuard schema (Phase 0 MVP)
 
-CREATE EXTENSION IF NOT EXISTS pgcrypto;
+-- gen_random_uuid() has been part of core PostgreSQL since version 13, so pgcrypto
+-- is not required. Azure Database for PostgreSQL also allow-lists extensions, so
+-- depending on one here would mean a server parameter change for no benefit.
 
 -- One organization per user for now (minimal multi-tenant)
 CREATE TABLE organizations (

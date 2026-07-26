@@ -321,3 +321,37 @@ commit.
 Cost note: ACR Basic is the first billable resource in the phase, at roughly EUR 4.60 per
 month. Unlike compute and the database, it will not be destroyed between sessions, because
 it holds the images.
+
+## Phase 1 — Step 7: Azure Database for PostgreSQL
+
+`psql-postureguard-prod` runs on the Burstable B1ms tier with 32 GB of storage, PostgreSQL 16
+to match local development, seven-day backups and no geo-redundancy. Matching the local major
+version deliberately: a version gap between development and production is not a variable
+worth introducing during a first deployment. High availability is off, since it would double
+the cost of a project where downtime has no consequence.
+
+Three CLI surprises worth recording. `--high-availability` is rejected on Burstable, because
+HA does not exist on that tier. `--database-name` is now reserved for elastic clusters, so
+the database is created in a second command. And `--public-access None` does not mean "public
+endpoint with no firewall rules" as I assumed — it disables public network access entirely,
+which then makes firewall rules impossible to create. Inspecting `network.publicNetworkAccess`
+before changing anything confirmed there was no VNet configuration to preserve. Public access
+was enabled, and a single firewall rule scoped to one workstation IP was added. The result is
+the intended posture: reachable only from an explicitly allowed address, over TLS only.
+
+Loading the schema surfaced a managed-service constraint. `pgcrypto` is not allow-listed on
+Azure Database for PostgreSQL, so `CREATE EXTENSION` failed while every table was still
+created. Checking what the extension was actually used for showed it was only
+`gen_random_uuid()`, which has been part of core PostgreSQL since version 13 — the extension
+was a leftover reflex from PostgreSQL 12. Rather than allow-listing it via the
+`azure.extensions` server parameter, the dependency was removed. A transactional insert with
+`ROLLBACK` confirmed UUID defaults work without it. The schema is now portable to any managed
+PostgreSQL 13+ with no server configuration required.
+
+The full connection string, including `?sslmode=require`, is stored as a second Key Vault
+secret rather than reassembled at each deployment. Encryption in transit becomes a property
+of the secret instead of an option someone can forget to pass.
+
+Cost note: this is the expensive resource of the phase at roughly EUR 13 per month running.
+`az postgres flexible-server stop` reduces that to storage only between sessions; Azure
+restarts a stopped server automatically after seven days.
