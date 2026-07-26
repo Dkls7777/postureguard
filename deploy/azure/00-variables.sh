@@ -31,3 +31,4 @@ export ACR_LOGIN_SERVER="${ACR}.azurecr.io"
 # Immutable tag tying each image to the commit that produced it.
 # Override with IMAGE_TAG=... to deploy a specific build.
 export IMAGE_TAG="${IMAGE_TAG:-$(git -C "$(dirname "${BASH_SOURCE[0]}")/../.." rev-parse --short HEAD 2>/dev/null || echo latest)}"
+export UAMI_NAME="id-${PROJECT}-apps"

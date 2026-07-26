@@ -447,3 +447,25 @@ Second, the resilience gap is now recorded as known debt: the worker needs recon
 exponential backoff so that a maintenance failover or a thirty-second network blip does not
 leave it crash-looping until someone notices. Roughly twenty lines of code, scheduled with the
 production hardening work in Phase 2.
+
+## Phase 1 — Step 11: Cost control as code
+
+Six scripts in `deploy/azure/` turn the environment into something rented rather than
+owned: `10-provision.sh` builds everything from nothing and is idempotent, `20-start.sh`
+and `30-stop.sh` bracket a work session, `40-update-images.sh` ships a commit, and
+`90-destroy.sh` removes every resource behind a typed confirmation. They are the draft of
+the Phase 4 Terraform configuration, using the same names and tags.
+
+Three details carry the lessons of this phase. `30-stop.sh` deactivates the worker's
+revision rather than setting `--min-replicas 0`, because an app without ingress has no
+scale trigger and the scale setting alone left the replica running and crash-looping — a
+cost control that had not been verified was not a cost control. `20-start.sh` refreshes
+the workstation firewall rule on every run, since a residential IP changes and a stale
+rule is indistinguishable from a broken database. And `40-update-images.sh` refuses to
+deploy from a dirty working tree: images are tagged with the short git SHA, so if local
+code differs from the commit the tag is a lie and the traceability built in step 6 is
+worthless.
+
+The full provisioning script was validated with `bash -n` rather than executed. Testing it
+honestly requires destroying the environment first, which belongs at the end of the phase
+as the final verification, not in the middle of it.
