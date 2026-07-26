@@ -8,7 +8,7 @@ export default function Home() {
           and open ports, scored from 0 to 100 with an A to F grade.
         </p>
         <div className="mt-8 inline-flex items-center rounded-full border border-neutral-700 px-4 py-2 text-sm text-neutral-400">
-          Phase 0 - MVP under construction
+          Phase 1 - live on Azure Container Apps
         </div>
       </div>
     </main>
