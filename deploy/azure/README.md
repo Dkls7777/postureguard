@@ -3,13 +3,12 @@
 The real asset of this project is the repository. The cloud is rented on demand:
 these scripts exist so the whole environment can be destroyed between work sessions
 and rebuilt in minutes, which is what makes it affordable to run on a time-limited
-credit. They are also the draft of the Terraform configuration arriving in Phase 4 —
-the resource names and tags here are the ones it will reuse.
+credit. They are also the draft of the Terraform configuration arriving in Phase 4: the resource names and tags here are the ones it will reuse.
 
 | Script | Purpose |
 |---|---|
 | `00-variables.sh` | Shared names, region and tags. Sourced by every other script; never executed. |
-| `10-provision.sh` | Build the entire environment from nothing. Idempotent — safe to re-run. |
+| `10-provision.sh` | Build the entire environment from nothing. Idempotent, safe to re-run. |
 | `20-start.sh` | Wake up for a session: start the database, refresh the workstation firewall rule, bring the worker back. |
 | `30-stop.sh` | Pause everything billable between sessions. |
 | `40-update-images.sh` | Build both images from the current commit, push, and roll out new revisions. |
@@ -36,7 +35,7 @@ habit worth having.
 
 **`30-stop.sh` deactivates the worker's revision** instead of setting
 `--min-replicas 0`. An app without ingress has no scale trigger, so the scale setting
-alone leaves the replica running — verified with `az containerapp replica list`. A cost
+alone leaves the replica running, verified with `az containerapp replica list`. A cost
 control you have not verified is not a cost control.
 
 **`20-start.sh` refreshes the workstation firewall rule** on every run, because a
