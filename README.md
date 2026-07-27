@@ -2,7 +2,7 @@
 
 PostureGuard is a web application that scans user-submitted domains and generates a security posture report covering TLS, HTTP security headers, and open ports, with a 0-100 score and an A-F grade.
 
-**Status:** Phase 1 complete — deployed on Azure Container Apps and live at **[app.samdossou.com](https://app.samdossou.com)**. Terraform, Kubernetes, CI/CD, SOC integration and AWS are on the roadmap.
+**Status:** Phase 1 complete. Deployed on Azure Container Apps and live at **[app.samdossou.com](https://app.samdossou.com)**. Terraform, Kubernetes, CI/CD, SOC integration and AWS are on the roadmap.
 
 ## Architecture
 
@@ -30,18 +30,18 @@ flowchart LR
 
 The app enqueues scan jobs into a PostgreSQL table that doubles as a job queue. A separate Python worker claims jobs with `FOR UPDATE ... SKIP LOCKED`, runs the scanners, writes findings, computes a score, and marks the job done. The report page polls until the scan completes.
 
-Neither component talks to the other directly — the database is the only channel between them. That is what allows the worker to have no ingress at all, and what will let it scale horizontally without coordination.
+Neither component talks to the other directly. The database is the only channel between them. That is what allows the worker to have no ingress at all, and what will let it scale horizontally without coordination.
 
 ## Live deployment
 
 Both components run as container apps in France Central:
 
 - **Images** are pulled from Azure Container Registry using a user-assigned managed identity holding `AcrPull`. The registry's admin account is disabled, so no registry password exists anywhere in this project.
-- **The connection string** is a Key Vault reference resolved at startup by the same identity, which holds `Key Vault Secrets User` — read only. `DATABASE_URL` never appears in the application definition, and rotating the secret in the vault propagates with a restart.
+- **The connection string** is a Key Vault reference resolved at startup by the same identity, which holds `Key Vault Secrets User`, a read-only role. `DATABASE_URL` never appears in the application definition, and rotating the secret in the vault propagates with a restart.
 - **The web app scales to zero** when idle and bills only on traffic, at the cost of a cold start of a few seconds. The worker runs a single replica while active.
 - **Deployments are tagged with the short git SHA**, never `latest`. Container Apps keeps the previous revision active at zero traffic weight, so a rollback is one command.
 
-Provisioning, start, stop, deploy and destroy are scripted in [`deploy/azure/`](deploy/azure/) — the environment is meant to be destroyed between work sessions and rebuilt in minutes. See that directory's README for the operational notes.
+Provisioning, start, stop, deploy and destroy are scripted in [`deploy/azure/`](deploy/azure/). The environment is meant to be destroyed between work sessions and rebuilt in minutes. See that directory's README for the operational notes.
 
 ## Features
 
@@ -56,7 +56,7 @@ Provisioning, start, stop, deploy and destroy are scripted in [`deploy/azure/`](
 ## Tech stack
 
 - **Web:** Next.js 16 (App Router, TypeScript), Server Actions, Tailwind CSS
-- **Database:** PostgreSQL 16 — Docker Compose locally, Azure Database for PostgreSQL Flexible Server in production
+- **Database:** PostgreSQL 16, run with Docker Compose locally, Azure Database for PostgreSQL Flexible Server in production
 - **Worker:** Python (psycopg), standard-library scanners
 - **Containers:** multi-stage builds, unprivileged users, Next.js standalone output (270 MB web image, 24 runtime packages)
 - **Cloud:** Azure Container Apps, Container Registry, Key Vault, Log Analytics, Entra ID managed identities
@@ -92,34 +92,40 @@ python worker.py
 - A domain must be verified via a DNS TXT record before it can be scanned, so users can only scan domains they control.
 - No secret is stored in the repository, in a container image, or in an application definition. Secrets live in Key Vault and are read by a passwordless managed identity.
 - Least privilege is applied and tested: the working account holds `Contributor` on a single resource group, not `Owner` on the subscription, and cannot grant itself permissions. The applications' identity can pull images but not push them, and read secrets but not write them.
-- Container images run as unprivileged users, and `.dockerignore` excludes environment files — Docker layers are immutable, so a secret copied and later deleted stays readable in the image history.
+- Container images run as unprivileged users, and `.dockerignore` excludes environment files, because Docker layers are immutable and a secret copied then deleted stays readable in the image history.
 
-Known gaps are documented rather than hidden. The deployed application currently scores **58/100, grade D** against its own scanner: TLS is sound, but the security headers are missing. The database is reachable from Azure resources rather than from a private network. Both are Phase 2 work, and both are recorded in [`docs/report/progress-report.md`](docs/report/progress-report.md) with the reasoning behind the trade-off.
+Known gaps are documented rather than hidden. The deployed application currently scores **58/100, grade D** against its own scanner. TLS is sound, but the security headers are missing. The database is reachable from Azure resources rather than from a private network. Both are Phase 2 work, and both are recorded in [`docs/report/progress-report.md`](docs/report/progress-report.md) with the reasoning behind the trade-off.
 
-## Project structure postureguard/
-├── web/ # Next.js application
-│ ├── app/ # pages, server actions, api routes
-│ ├── lib/ # database pool, auth helpers
-│ └── Dockerfile # multi-stage build, standalone output
-├── worker/ # Python worker
-│ ├── worker.py # main loop and scanners
-│ ├── scoring.py # scoring logic, isolated and tested
-│ ├── test_scoring.py # pytest unit tests
-│ └── Dockerfile
-├── db/init/01-schema.sql # schema, auto-loaded on first start
-├── deploy/
-│ ├── azure/ # provisioning, start, stop, deploy, destroy
-│ └── systemd/ # local worker service and backup timer
-├── scripts/backup-db.sh # dump, gzip, rotate
-├── docker-compose.yml # local PostgreSQL
-└── docs/
-├── report/ # detailed build report, step by step
-├── screenshots/ # annotated gallery
-├── blog/ # published articles
-└── blog-notes/ # session notes feeding future articles ## Documentation
+## Project structure
 
-- [Build report](docs/report/progress-report.md) — every step, every decision, every trade-off
-- [Screenshot gallery](docs/screenshots/README.md) — annotated, in build order
+```
+postureguard/
+|-- web/                   # Next.js application
+|   |-- app/               # pages, server actions, api routes
+|   |-- lib/               # database pool, auth helpers
+|   `-- Dockerfile         # multi-stage build, standalone output
+|-- worker/                # Python worker
+|   |-- worker.py          # main loop and scanners
+|   |-- scoring.py         # scoring logic, isolated and tested
+|   |-- test_scoring.py    # pytest unit tests
+|   `-- Dockerfile
+|-- db/init/01-schema.sql  # schema, auto-loaded on first start
+|-- deploy/
+|   |-- azure/             # provisioning, start, stop, deploy, destroy
+|   `-- systemd/           # local worker service and backup timer
+|-- scripts/backup-db.sh   # dump, gzip, rotate
+|-- docker-compose.yml     # local PostgreSQL
+`-- docs/
+    |-- report/            # detailed build report, step by step
+    |-- screenshots/       # annotated gallery
+    |-- blog/              # published articles
+    `-- blog-notes/        # session notes feeding future articles
+```
+
+## Documentation
+
+- [Build report](docs/report/progress-report.md): every step, every decision, every trade-off
+- [Screenshot gallery](docs/screenshots/README.md): annotated, in build order
 - [Azure naming convention](docs/azure-naming-convention.md)
 - [Deployment scripts](deploy/azure/README.md)
 
