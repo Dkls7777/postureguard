@@ -46,7 +46,7 @@ the short git SHA; if local code differs from the commit, the tag is a lie and t
 traceability is worthless.
 
 **The custom domain is not scripted.** DNS records and certificate binding are done once
-per environment; see step 9 of `docs/report/progress-report.md`.
+per environment; see step 9 of `docs/report/phase-1-azure.md`.
 
 **Key Vault soft-delete reserves the vault name for seven days** after a group delete.
 `90-destroy.sh` prints the `az keyvault purge` command needed to free it immediately.

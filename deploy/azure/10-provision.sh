@@ -216,4 +216,4 @@ az containerapp show -g "$RG" -n "$CA_WEB" \
   --query "properties.configuration.ingress.fqdn" -o tsv
 echo
 echo "The custom domain (${CUSTOM_DOMAIN}) needs its DNS records and certificate"
-echo "bound once per environment -- see docs/report/progress-report.md, step 9."
+echo "bound once per environment -- see docs/report/phase-1-azure.md, step 9."

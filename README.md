@@ -94,7 +94,7 @@ python worker.py
 - Least privilege is applied and tested: the working account holds `Contributor` on a single resource group, not `Owner` on the subscription, and cannot grant itself permissions. The applications' identity can pull images but not push them, and read secrets but not write them.
 - Container images run as unprivileged users, and `.dockerignore` excludes environment files, because Docker layers are immutable and a secret copied then deleted stays readable in the image history.
 
-Known gaps are documented rather than hidden. The deployed application currently scores **58/100, grade D** against its own scanner. TLS is sound, but the security headers are missing. The database is reachable from Azure resources rather than from a private network. Both are Phase 2 work, and both are recorded in [`docs/report/progress-report.md`](docs/report/progress-report.md) with the reasoning behind the trade-off.
+Known gaps are documented rather than hidden. The deployed application currently scores **58/100, grade D** against its own scanner. TLS is sound, but the security headers are missing. The database is reachable from Azure resources rather than from a private network. Both are Phase 2 work, and both are recorded in [`docs/report/phase-1-azure.md`](docs/report/phase-1-azure.md) with the reasoning behind the trade-off.
 
 ## Project structure
 
@@ -124,10 +124,20 @@ postureguard/
 
 ## Documentation
 
-- [Build report](docs/report/progress-report.md): every step, every decision, every trade-off
+- [Build report](docs/report/): every step, every decision, every trade-off, one file per phase
 - [Screenshot gallery](docs/screenshots/README.md): annotated, in build order
 - [Azure naming convention](docs/azure-naming-convention.md)
 - [Deployment scripts](deploy/azure/README.md)
+
+## Build log
+
+| Phase | Status | What was built |
+|---|---|---|
+| [Phase 0](docs/report/phase-0-mvp.md) | Complete | MVP: authentication, DNS ownership verification, three scanners, scoring, plus systemd services and automated backups |
+| [Phase 1](docs/report/phase-1-azure.md) | Complete | Azure foundation: identity hardening, hardened container images, managed PostgreSQL, Container Apps, custom domain, scripted cost control |
+| Phase 2 | Next | Production hardening: security headers, private database networking, cookie and CORS scanners |
+
+Each phase has its own report, written as the work happened rather than reconstructed afterwards. Mistakes and reversed decisions are kept in.
 
 ## Roadmap
 
