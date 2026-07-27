@@ -178,3 +178,18 @@ Signing in to my own deployed instance made the absence of a password reset flow
 rather than theoretical. Recorded in Phase 0 as future work via Entra External ID in
 Phase 2. Worth keeping the observation, because using a thing is what surfaces what it
 lacks. Reading a backlog does not.
+
+## A published screenshot with a valid account name
+
+I redacted GUIDs from the RBAC screenshots and missed the UPN, which appeared six times in
+the same image and went to the public repository. Worth writing up not because it was
+serious, but because the interesting part is deciding how serious.
+
+What is exposed is a named target: a valid account and the tenant domain. What protects it
+is MFA enforced by security defaults, a random password in a manager, and a role scoped to
+one resource group with no ability to escalate. The realistic worst case is credential
+stuffing against an account that cannot do much even if it falls.
+
+So the response was proportionate rather than maximal: replace the image, do not rewrite
+public git history for an address inside a PNG, do not rename the account. Risk assessment
+is what separates a security engineer from someone applying reflexes.
