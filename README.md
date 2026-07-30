@@ -8,29 +8,45 @@ PostureGuard is a web application that scans user-submitted domains and generate
 
 ```mermaid
 flowchart LR
-    U[User] -->|HTTPS<br/>app.samdossou.com| ING[Container Apps ingress<br/>Azure-managed certificate]
-    ING --> W[Web app<br/>Next.js 16<br/>scales to zero]
-    W -->|read / write over TLS| DB[(Azure Database for<br/>PostgreSQL 16<br/>data + job queue)]
-    WK[Worker<br/>Python<br/>no ingress] -->|claim jobs<br/>FOR UPDATE SKIP LOCKED| DB
-    WK --> S1[TLS scanner]
-    WK --> S2[HTTP headers scanner]
-    WK --> S3[Port scanner]
-    WK -->|findings + score| DB
-    W -->|live report| U
+    U([User])
 
-    ACR[(Container Registry)] -.->|image pull| W
-    ACR -.->|image pull| WK
-    KV[(Key Vault)] -.->|secret reference| W
-    KV -.->|secret reference| WK
-    ID[Managed identity<br/>AcrPull + Secrets User] -.-> ACR
-    ID -.-> KV
-    W -.->|console logs| LOG[(Log Analytics)]
-    WK -.->|console logs| LOG
+    subgraph ENV["Container Apps environment - France Central"]
+        direction TB
+        W["Web app<br/>Next.js 16<br/>scales to zero"]
+        K["Worker<br/>Python<br/>no ingress"]
+    end
+
+    DB[("Azure Database for PostgreSQL 16<br/>data + job queue")]
+
+    U -->|"HTTPS - app.samdossou.com"| W
+    W -->|"insert scan: queued"| DB
+    K -->|"claim job - FOR UPDATE SKIP LOCKED"| DB
+    K -->|"findings + score"| DB
+    DB -->|"live report"| W
 ```
 
 The app enqueues scan jobs into a PostgreSQL table that doubles as a job queue. A separate Python worker claims jobs with `FOR UPDATE ... SKIP LOCKED`, runs the scanners, writes findings, computes a score, and marks the job done. The report page polls until the scan completes.
 
 Neither component talks to the other directly. The database is the only channel between them. That is what allows the worker to have no ingress at all, and what will let it scale horizontally without coordination.
+
+### Trust and supply chain
+
+```mermaid
+flowchart LR
+    ID["Managed identity<br/>AcrPull + Key Vault Secrets User"]
+    ACR[("Container Registry")]
+    KV[("Key Vault")]
+    APPS["Web app + Worker"]
+    LOG[("Log Analytics")]
+
+    ID -.->|"token"| ACR
+    ID -.->|"token"| KV
+    ACR -->|"image pull at startup"| APPS
+    KV -->|"secret reference at startup"| APPS
+    APPS -.->|"console logs"| LOG
+```
+
+None of these services sit on the request path, they authorise it. Images are pulled and secrets are read at startup by a managed identity that holds no credential of its own, and both applications write their console output to the same workspace.
 
 ## Live deployment
 
