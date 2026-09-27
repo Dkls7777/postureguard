@@ -140,7 +140,10 @@ else
   LOG_ID=$(az monitor log-analytics workspace show -g "$RG" -n "$LOG" --query customerId -o tsv)
   LOG_KEY=$(az monitor log-analytics workspace get-shared-keys -g "$RG" -n "$LOG" \
               --query primarySharedKey -o tsv)
+  # Explicit mode: containerapp extension 1.3.0b5 defaults to the Express preview,
+  # which rejects Key Vault secret references, custom domains and min-replicas.
   az containerapp env create -g "$RG" -n "$CAE" -l "$LOCATION" \
+    --environment-mode WorkloadProfiles \
     --logs-workspace-id "$LOG_ID" --logs-workspace-key "$LOG_KEY" --tags $TAGS -o none
   unset LOG_KEY
   echo "    created"
