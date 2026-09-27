@@ -5,8 +5,8 @@
 
 # --- Context ---
 export SUBSCRIPTION_ID="${SUBSCRIPTION_ID:-$(az account show --query id --output tsv)}"
-export LOCATION="germanywestcentral"          # Azure for Students policy: francecentral not allowed
-export LOC_ABBR="gwc"
+export LOCATION="italynorth"                  # Azure for Students: francecentral not allowed, PostgreSQL restricted in germanywestcentral
+export LOC_ABBR="itn"
 export PROJECT="postureguard"
 export ENVIRONMENT="prod"
 export INSTANCE="${INSTANCE:-02}"                # global-scope names only: 01 is still held by the disabled trial subscription
