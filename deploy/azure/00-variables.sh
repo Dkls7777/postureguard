@@ -5,16 +5,17 @@
 
 # --- Context ---
 export SUBSCRIPTION_ID="${SUBSCRIPTION_ID:-$(az account show --query id --output tsv)}"
-export LOCATION="francecentral"
-export LOC_ABBR="frc"
+export LOCATION="germanywestcentral"          # Azure for Students policy: francecentral not allowed
+export LOC_ABBR="gwc"
 export PROJECT="postureguard"
 export ENVIRONMENT="prod"
+export INSTANCE="${INSTANCE:-02}"                # global-scope names only: 01 is still held by the disabled trial subscription
 
 # --- Resources (see docs/azure-naming-convention.md) ---
 export RG="rg-${PROJECT}-${ENVIRONMENT}-${LOC_ABBR}"
-export ACR="acr${PROJECT}${ENVIRONMENT}"          # alphanumeric only, global scope
-export KV="kv-${PROJECT}-${ENVIRONMENT}"          # 24 chars max, global scope
-export PSQL="psql-${PROJECT}-${ENVIRONMENT}"      # global scope
+export ACR="acr${PROJECT}${ENVIRONMENT}${INSTANCE}"          # alphanumeric only, global scope
+export KV="kv-${PROJECT}-${ENVIRONMENT}-${INSTANCE}"          # 24 chars max, global scope
+export PSQL="psql-${PROJECT}-${ENVIRONMENT}-${INSTANCE}"      # global scope
 export PSQL_DB="postureguard"
 export PSQL_ADMIN="pgadmin"
 export LOG="log-${PROJECT}-${ENVIRONMENT}-${LOC_ABBR}"
